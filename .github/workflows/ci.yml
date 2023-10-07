@@ -21,6 +21,6 @@ jobs:
       - name: Adding Known Hosts
         run: ssh-keyscan -H ${{env.HOST}} >> ~/.ssh/known_hosts
       - name: Deploy with rsync
-        run: rsync -avz . ${{env.USER}}@${{env.HOST}}:/home/mausved/dailycounter/
+        run: rsync -avz ./ ${{env.USER}}@${{env.HOST}}:/home/mausved/dailycounter
       - name: start
         run: ssh ${{env.USER}}@${{env.HOST}} "ls dailycounter"
