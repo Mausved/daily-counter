@@ -23,6 +23,6 @@ jobs:
       - name: Deploy with rsync
         run: rsync -avz . ${{env.USER}}@${{env.HOST}}:/home/mausved/dailycounter/
       - name: stop previous
-        run: ssh ${{env.USER}}@${{env.HOST}} "ps | grep '\./main' | grep -v 'grep' | awk '{print $1}' | xargs kill -2"
+        run: ssh ${{env.USER}}@${{env.HOST}} "ps | grep '\./main' | grep -v 'grep' | awk '{print $1}' | xargs kill -2 {}"
       - name: start new
         run: ssh ${{env.USER}}@${{env.HOST}} "tmux new-session -d -s daily_counter 'cd dailycounter && go build -o main main.go processor.go && ./main'"
