@@ -15,4 +15,4 @@ else
     echo "not found already running app"
 fi
 
-tmux new-session -d -s $session 'go build -o $session main.go processor.go && ./$session'
+tmux new-session -d -s $session "go build -o $session main.go processor.go && ./$session"
