@@ -22,8 +22,8 @@ jobs:
       - name: Deploy with rsync
         run: rsync -avz . ${{env.USER}}@${{env.HOST}}:/home/mausved/dailycounter
       - name: whoami
-        run: whoami
+        run: ssh ${{env.USER}}@${{env.HOST}} 'whoami'
       - name: ps -e
-        run: ps -e
+        run: ssh ${{env.USER}}@${{env.HOST}} 'ps -e'
       - name: deploy
         run: ssh ${{env.USER}}@${{env.HOST}} "cd dailycounter && bash ./deploy.sh"
