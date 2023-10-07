@@ -21,9 +21,5 @@ jobs:
         uses: actions/checkout@v3
       - name: Deploy with rsync
         run: rsync -avz . ${{env.USER}}@${{env.HOST}}:/home/mausved/dailycounter
-      - name: install tmux
-        run: sudo apt-get update && sudo apt-get -y install tmux
-      - name: tmux ls
-        run: tmux ls
       - name: stop
-        run: tmux kill-session -t daily_counter
+        run: ssh ${{env.USER}}@${{env.HOST}} "tmux kill-session -t daily_counter"
