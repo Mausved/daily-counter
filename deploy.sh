@@ -1,7 +1,7 @@
 #!bin/bash
 
 session="daily_counter"
-pid=$(ps | grep '\./main' | grep -v 'grep' | awk '{print $1}')
+pid=$(ps -e | grep $session|\./$session | grep -v 'grep' | awk '{print $1}')
 echo "pid=$pid"
 
 if [[ $pid -ne '' ]]
@@ -15,4 +15,4 @@ else
     echo "not found already running app"
 fi
 
-tmux new-session -d -s $session 'go build -o main main.go processor.go && ./main'
+tmux new-session -d -s $session 'go build -o $session main.go processor.go && ./$session'
