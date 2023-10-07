@@ -2,7 +2,7 @@
 
 session="daily_counter"
 env GOOS=linux GOARCH=amd64 go build -o $session main.go processor.go
-rsync -avz ./$session  mausved@62.84.117.24:/home/mausved/dailycounter
+rsync -avz ./$session  ${{env.USER}}@${{env.HOST}}:/home/mausved/dailycounter
 
 restart() {
     session="daily_counter"
