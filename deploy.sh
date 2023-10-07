@@ -1,7 +1,7 @@
 #!bin/bash
 
 session="daily_counter"
-pid=$(ps -e | grep $session|\./$session | grep -v 'grep' | awk '{print $1}')
+pid=$(ps -e | grep $session | grep -v 'grep' | awk '{print $1}')
 echo "pid=$pid"
 
 if [[ $pid -ne '' ]]
