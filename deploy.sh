@@ -13,7 +13,6 @@ restart() {
     then
         kill -2 $pid
         wait $pid
-        sleep 1
         echo "stopped pid=$pid"
         tmux kill-session -t $session
         echo "killed session $session"
