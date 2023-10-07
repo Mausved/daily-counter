@@ -1,8 +1,5 @@
 name: deploy
-on:
-  pull_request:
-    types:
-      - closed
+on: [ pull_request ]
 
 env:
   HOST: "62.84.117.24"
@@ -20,7 +17,9 @@ jobs:
           known_hosts: 'just-a-placeholder-so-we-dont-get-errors'
       - name: Adding Known Hosts
         run: ssh-keyscan -H ${{env.HOST}} >> ~/.ssh/known_hosts
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
       - name: Deploy with rsync
-        run: rsync -avz ./ ${{env.USER}}@${{env.HOST}}:/home/mausved/dailycounter
+        run: rsync -avz . ${{env.USER}}@${{env.HOST}}:/home/mausved/dailycounter
       - name: start
         run: ssh ${{env.USER}}@${{env.HOST}} "ls dailycounter"
