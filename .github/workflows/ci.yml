@@ -19,9 +19,5 @@ jobs:
         run: ssh-keyscan -H ${{env.HOST}} >> ~/.ssh/known_hosts
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
-      - name: Deploy with rsync
-        run: rsync -avz . ${{env.USER}}@${{env.HOST}}:/home/mausved/dailycounter
-      - name: ps -e
-        run: ssh ${{env.USER}}@${{env.HOST}} 'ps -e'
       - name: deploy
-        run: ssh ${{env.USER}}@${{env.HOST}} "cd dailycounter && bash ./deploy.sh"
+        run: bash ./deploy.sh
