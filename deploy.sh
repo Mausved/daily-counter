@@ -1,6 +1,7 @@
 #!bin/bash
 
 pid=$(ps | grep '\./main' | grep -v 'grep' | awk '{print $1}')
+echo "pid=$pid"
 if [[ $pid -ne '' ]]
 then
     kill -2 $pid
