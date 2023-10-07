@@ -22,4 +22,4 @@ jobs:
       - name: Deploy with rsync
         run: rsync -avz . ${{env.USER}}@${{env.HOST}}:/home/mausved/dailycounter
       - name: stop
-        run: ssh ${{env.USER}}@${{env.HOST}} "tmux kill-session -t daily_counter"
+        run: ssh ${{env.USER}}@${{env.HOST}} "tmux ls"
