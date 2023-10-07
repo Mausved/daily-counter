@@ -42,6 +42,7 @@ func main() {
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
 	bot.Debug = appMode == appModeDev
+
 	if !bot.Debug {
 		if err := sendHello(bot); err != nil {
 			log.Fatalf("failed send hello message: %v", err)
@@ -60,6 +61,11 @@ func main() {
 	}()
 
 	gracefulShutdown(cancel, &wg)
+	if !bot.Debug {
+		if err := sendGoodbye(bot); err != nil {
+			log.Fatalf("failed send goodbye message: %v", err)
+		}
+	}
 }
 
 func readBalanceFromFile(fileName string) (*balanceLimit, error) {
@@ -103,6 +109,20 @@ func sendHello(bot *tgbotapi.BotAPI) error {
 	}
 
 	msgYang := tgbotapi.NewMessage(yang, "привет, Бильбо")
+	if _, err := bot.Send(msgYang); err != nil {
+		return fmt.Errorf("send message to yang: %w", err)
+	}
+
+	return nil
+}
+
+func sendGoodbye(bot *tgbotapi.BotAPI) error {
+	msgYin := tgbotapi.NewMessage(yin, "пока, Фродо")
+	if _, err := bot.Send(msgYin); err != nil {
+		return fmt.Errorf("send message to yin: %w", err)
+	}
+
+	msgYang := tgbotapi.NewMessage(yang, "пока, Бильбо")
 	if _, err := bot.Send(msgYang); err != nil {
 		return fmt.Errorf("send message to yang: %w", err)
 	}
