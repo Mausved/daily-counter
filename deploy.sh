@@ -19,7 +19,7 @@ restart() {
     else
         echo "not found already running app"
     fi
-    tmux new-session -d -s $session "cd dailycounter && ./daily_counter"
+    tmux new-session -d -s $session "cd dailycounter && ./$session"
     echo "started app"
 }
 
