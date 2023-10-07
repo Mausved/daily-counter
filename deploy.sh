@@ -23,5 +23,5 @@ restart() {
     echo "started app"
 }
 
-ssh mausved@62.84.117.24 "$(typeset -f); restart"
+ssh ${{env.USER}}@${{env.HOST}} "$(typeset -f); restart"
 rm $session
