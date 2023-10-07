@@ -5,7 +5,7 @@ on:
       - closed
 
 env:
-  IP: "62.84.117.24"
+  HOST: "62.84.117.24"
   USER: "mausved"
 
 jobs:
@@ -13,5 +13,14 @@ jobs:
     name: deploy
     runs-on: ubuntu-latest
     steps:
-      - name: ssh connect
-        run: ssh $USER@$IP 'cd dailycounter && go run main.go processor.go'
+      - name: Install SSH Key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: 'just-a-placeholder-so-we-dont-get-errors'
+      - name: Adding Known Hosts
+        run: ssh-keyscan -H ${{env.HOST}} >> ~/.ssh/known_hosts
+      - name: Deploy with rsync
+        run: rsync -avz . ${{env.USER}}@${{env.HOST}}:/home/mausved/dailycounter/
+      - name: run
+        run: ssh ${{env.USER}}@${{env.HOST}} 'cd dailycounter && go run main.go processor.go'
