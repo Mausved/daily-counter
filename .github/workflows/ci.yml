@@ -2,7 +2,7 @@ name: deploy
 on: [pull_request]
 
 env:
-  HOST: "62.84.117.24"
+  HOST: "158.160.119.46"
   USER: "mausved"
 
 jobs:
