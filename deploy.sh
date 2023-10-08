@@ -2,7 +2,7 @@
 
 session="daily_counter"
 env GOOS=linux GOARCH=amd64 go build -o $session main.go processor.go
-rsync -avz ./$session  $USER@$HOST:$PATH
+rsync -avz ./$session  $SSH_USER@$SSH_HOST:$SSH_PATH
 
 restart() {
     session="daily_counter"
@@ -23,5 +23,5 @@ restart() {
     echo "started app"
 }
 
-ssh $USER@$HOST "$(typeset -f); restart"
+ssh $SSH_USER@$SSH_HOST "$(typeset -f); restart"
 rm $session
