@@ -16,4 +16,8 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
       - name: deploy
+        env:
+          USER: ${{ secrets.USER }}
+          HOST: ${{ secrets.HOST }}
+          PATH: ${{ secrets.PATH }}
         run: bash ./deploy.sh
