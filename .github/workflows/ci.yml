@@ -4,10 +4,6 @@ on:
     types:
       - closed
 
-env:
-  HOST: "62.84.117.24"
-  USER: "mausved"
-
 jobs:
   deploy:
     name: deploy
@@ -19,10 +15,12 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           known_hosts: 'just-a-placeholder-so-we-dont-get-errors'
       - name: Adding Known Hosts
-        run: ssh-keyscan -H ${{env.HOST}} >> ~/.ssh/known_hosts
+        run: ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
-      - name: Deploy with rsync
-        run: rsync -avz . ${{env.USER}}@${{env.HOST}}:/home/mausved/dailycounter
-      - name: start
-        run: ssh ${{env.USER}}@${{env.HOST}} "cd dailycounter && bash ./deploy.sh"
+      - name: deploy
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PATH: ${{ secrets.SSH_PATH }}
+        run: bash ./deploy.sh
