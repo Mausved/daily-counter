@@ -32,7 +32,7 @@ jobs:
           if [[ $pid -ne '' ]]
           then
             kill -2 $pid
-            wait $pid
+            tail --pid=$pid -f /dev/null
             echo "stopped pid=$pid"
             tmux kill-session -t $session
             echo "killed session $session"
