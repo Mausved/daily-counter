@@ -19,8 +19,28 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
       - name: Deploy
-        env:
-          SSH_USER: "mausved"
-          SSH_HOST: "51.250.5.58"
-          SSH_PATH: ${{ secrets.SSH_PATH }}
-        run: bash ./deploy.sh
+        run: |
+          session="daily_counter"
+          env GOOS=linux GOARCH=amd64 go build -o $session main.go processor.go
+          rsync -avz ./$session  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SSH_PATH }}
+  
+          restart() {
+          session="daily_counter"
+          pid=$(ps -e | grep ${session} | grep -v 'grep' | awk '{print $1}')
+          echo "pid=$pid"
+          
+          if [[ $pid -ne '' ]]
+          then
+            kill -2 $pid
+            wait $pid
+            echo "stopped pid=$pid"
+            tmux kill-session -t $session
+            echo "killed session $session"
+          else
+            echo "not found already running app"
+          fi
+            tmux new-session -d -s $session "cd dailycounter && ./$session"
+            echo "started app"
+          }
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "$(typeset -f); restart"
+          rm $session
