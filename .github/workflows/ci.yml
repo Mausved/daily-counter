@@ -1,5 +1,8 @@
 name: deploy
-on: [ pull_request ]
+on:
+  pull_request:
+    types:
+      - closed
 
 jobs:
   deploy:
@@ -20,7 +23,7 @@ jobs:
           session="daily_counter"
           env GOOS=linux GOARCH=amd64 go build -o $session main.go processor.go
           rsync -avz ./$session  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SSH_PATH }}
-          
+  
           restart() {
           session="daily_counter"
           pid=$(ps -e | grep ${session} | grep -v 'grep' | awk '{print $1}')
