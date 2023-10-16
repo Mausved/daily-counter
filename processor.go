@@ -229,7 +229,10 @@ func (p *processor) handlerStats(update tgbotapi.Update) ([]tgbotapi.MessageConf
 		msg,
 		daysLeft)
 
-	tomorrowLimit := p.bl.Balance / float64(daysLeft)
+	tomorrowLimit := p.bl.Balance
+	if daysLeft > 1 {
+		tomorrowLimit = p.bl.Balance / float64(daysLeft-1)
+	}
 	msg = fmt.Sprintf(
 		"%s\n"+
 			"tomorrow limit: %.2f",
