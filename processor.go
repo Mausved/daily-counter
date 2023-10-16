@@ -215,7 +215,7 @@ func (p *processor) handlerStats(update tgbotapi.Update) ([]tgbotapi.MessageConf
 
 	msg := fmt.Sprintf(
 		"balance: %.2f\n"+
-			"status: %.2f\n"+
+			"today: %.2f\n"+
 			"day limit: %.2f",
 		p.bl.Balance,
 		p.bl.Status,
