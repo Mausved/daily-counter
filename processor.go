@@ -222,6 +222,20 @@ func (p *processor) handlerStats(update tgbotapi.Update) ([]tgbotapi.MessageConf
 		p.bl.DayLimit,
 	)
 
+	daysLeft := monthLastDay(now) - now.Day() + 1
+	msg = fmt.Sprintf(
+		"%s\n"+
+			"days left: %d",
+		msg,
+		daysLeft)
+
+	tomorrowLimit := p.bl.Balance / float64(daysLeft)
+	msg = fmt.Sprintf(
+		"%s\n"+
+			"tomorrow limit: %.2f",
+		msg,
+		tomorrowLimit)
+
 	if p.bl.TodaySpent > 0 {
 		msg = fmt.Sprintf(
 			"%s\n"+
@@ -249,23 +263,20 @@ func asSlice(msg ...tgbotapi.MessageConfig) []tgbotapi.MessageConfig {
 func countDayLimit(balance float64) float64 {
 	now := time.Now()
 
-	y := now.Year()
-	m := now.Month()
-	d := now.Day()
-
-	lastDay := 0
-	for i := 27; ; i++ {
-		nextDayDate := time.Date(y, m, i, 0, 0, 0, 0, now.Location())
-		if nextDayDate.Month() != m {
-			lastDay = i - 1
-			break
-		}
-	}
-
-	daysLeft := lastDay - d + 1
+	lastDay := monthLastDay(now)
+	daysLeft := lastDay - now.Day() + 1
 	dailyConsumptionLimit := balance / float64(daysLeft)
 
 	return dailyConsumptionLimit
+}
+
+func monthLastDay(t time.Time) int {
+	for i := 27; ; i++ {
+		nextDayDate := time.Date(t.Year(), t.Month(), i, 0, 0, 0, 0, t.Location())
+		if nextDayDate.Month() != t.Month() {
+			return i - 1
+		}
+	}
 }
 
 func (p *processor) startNewDay(now time.Time) {
