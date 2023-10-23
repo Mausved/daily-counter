@@ -22,14 +22,14 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
       - name: Build image
-        env:
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD : ${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DATABASE: ${{ secrets.POSTGRES_DATABASE }}
         run: docker-compose build
       - name: Push image
         run: docker-compose push
       - name: Deploy
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DATABASE: ${{ secrets.POSTGRES_DATABASE }}
         run: |
           rsync -avz ./docker-compose.yaml  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/mausved/dailycounter/docker-compose.yaml
           restart() {
