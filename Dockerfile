@@ -1,16 +1,18 @@
 FROM golang:1.21 as builder
 
-WORKDIR build
+WORKDIR /build
 
 COPY . .
 
-RUN go mod download
-RUN go build -o main .
+RUN  --mount=type=cache,target=/go/pkg/mod \
+     --mount=type=cache,target=/root/.cache/go-build \
+     go mod download && \
+     go build -o main .
 
 FROM alpine:latest
 
 WORKDIR /app
 
-COPY --from=builder /build/main .
+COPY --from=builder /build/main /app/main
 
 CMD ["/app/main"]
