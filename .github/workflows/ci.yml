@@ -33,6 +33,7 @@ jobs:
         run: |
           rsync -avz ./docker-compose.yaml  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/mausved/dailycounter/docker-compose.yaml
           restart() {
+          cd /home/mausved/dailycounter/
           docker-compose pull
           docker-compose down
           docker-compose up -d
