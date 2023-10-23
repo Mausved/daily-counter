@@ -15,5 +15,5 @@ WORKDIR /app
 
 COPY --from=builder /build/main /app/main
 
-USER 888
+USER mausved
 CMD ["/app/main"]
