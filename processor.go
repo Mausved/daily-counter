@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"log"
 	"math"
 	"regexp"
 	"strconv"
@@ -15,11 +18,11 @@ var plusPattern = regexp.MustCompile(`\+\d*`)
 var minusPattern = regexp.MustCompile(`-\d*`)
 
 type processor struct {
-	bl *balanceLimit
+	db *Database
 }
 
-func (p *processor) process(update tgbotapi.Update) []tgbotapi.MessageConfig {
-	if update.Message == nil { // If we got a message
+func (p *processor) process(ctx context.Context, update tgbotapi.Update) []tgbotapi.MessageConfig {
+	if update.Message == nil {
 		return nil
 	}
 
@@ -37,26 +40,30 @@ func (p *processor) process(update tgbotapi.Update) []tgbotapi.MessageConfig {
 
 	switch {
 	case plusPattern.MatchString(text):
-		messages, err := p.handlerPlus(update)
+		messages, err := p.handlerPlus(ctx, update)
 		if err != nil {
+			log.Printf("failed handler plus: %v", err)
 			return asSlice(errMsg())
 		}
 		return messages
 	case minusPattern.MatchString(text):
-		messages, err := p.handlerMinus(update)
+		messages, err := p.handlerMinus(ctx, update)
 		if err != nil {
+			log.Printf("failed handler minus: %v", err)
 			return asSlice(errMsg())
 		}
 		return messages
 	case balancePattern.MatchString(text):
-		messages, err := p.handlerSetBalance(update)
+		messages, err := p.handlerSetBalance(ctx, update)
 		if err != nil {
+			log.Printf("failed handler set balance: %v", err)
 			return asSlice(errMsg())
 		}
 		return messages
 	case strings.ToLower(text) == "s":
-		messages, err := p.handlerStats(update)
+		messages, err := p.handlerStats(ctx, update)
 		if err != nil {
+			log.Printf("failed handler stats: %v", err)
 			return asSlice(errMsg())
 		}
 		return messages
@@ -73,7 +80,19 @@ func (p *processor) process(update tgbotapi.Update) []tgbotapi.MessageConfig {
 
 }
 
-func (p *processor) handlerPlus(update tgbotapi.Update) ([]tgbotapi.MessageConfig, error) {
+func (p *processor) handlerPlus(ctx context.Context, update tgbotapi.Update) ([]tgbotapi.MessageConfig, error) {
+	bl, err := p.db.getBalance(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get balance: %w", err)
+	}
+
+	now := time.Now()
+
+	isNewDay := bl.UpdatedAt.Time.Day() != now.Day()
+	if isNewDay {
+		bl = startNewDayWithBalance(now, bl.Balance)
+	}
+
 	text := update.Message.Text
 	parsed, err := strconv.ParseFloat(text, 64)
 	if err != nil {
@@ -81,19 +100,17 @@ func (p *processor) handlerPlus(update tgbotapi.Update) ([]tgbotapi.MessageConfi
 	}
 
 	parsed = math.Abs(parsed)
-	p.bl.Balance += parsed
+	bl.Balance += parsed
 
-	now := time.Now()
+	bl.Status += parsed
+	bl.TodayAdded += parsed
 
-	isNewDay := p.bl.UpdateAt.Day() != now.Day()
-	if isNewDay {
-		p.startNewDay(now)
+	updated, err := p.db.updateBalance(ctx, bl)
+	if err != nil {
+		return nil, fmt.Errorf("update balance: %w", err)
 	}
 
-	p.bl.Status += parsed
-	p.bl.TodayAdded += parsed
-
-	msg := fmt.Sprintf("today: %.2f", p.bl.Status)
+	msg := fmt.Sprintf("today: %.2f", updated.Status)
 
 	msgYin := tgbotapi.NewMessage(yin, msg)
 	msgYang := tgbotapi.NewMessage(yang, msg)
@@ -111,18 +128,19 @@ func (p *processor) handlerPlus(update tgbotapi.Update) ([]tgbotapi.MessageConfi
 	return asSlice(msgYin, msgYang), nil
 }
 
-func (p *processor) actualizeStats() {
-	now := time.Now()
-	if p.bl.UpdateAt.Day() == now.Day() {
-		return
+func (p *processor) handlerMinus(ctx context.Context, update tgbotapi.Update) ([]tgbotapi.MessageConfig, error) {
+	bl, err := p.db.getBalance(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get balance: %w", err)
 	}
 
-	p.bl.Status = countDayLimit(p.bl.Balance)
-	p.bl.DayLimit = p.bl.Status
-	p.bl.UpdateAt = now
-}
+	now := time.Now()
 
-func (p *processor) handlerMinus(update tgbotapi.Update) ([]tgbotapi.MessageConfig, error) {
+	isNewDay := bl.UpdatedAt.Time.Day() != now.Day()
+	if isNewDay {
+		bl = startNewDayWithBalance(now, bl.Balance)
+	}
+
 	text := update.Message.Text
 
 	parsed, err := strconv.ParseFloat(text, 64)
@@ -131,27 +149,28 @@ func (p *processor) handlerMinus(update tgbotapi.Update) ([]tgbotapi.MessageConf
 	}
 
 	parsed = math.Abs(parsed)
-	p.bl.Balance -= parsed
-	if p.bl.Balance < 0 {
-		p.bl.Balance = 0
+	bl.Balance -= parsed
+	if bl.Balance < 0 {
+		bl.Balance = 0
 	}
 
-	now := time.Now()
-
-	isNewDay := p.bl.UpdateAt.Day() != now.Day()
-	if isNewDay {
-		p.startNewDay(now)
+	bl.TodaySpent += parsed
+	bl.Status -= parsed
+	if bl.Balance == 0 {
+		bl.Status = 0
 	}
 
-	p.bl.TodaySpent += parsed
-	p.bl.Status -= parsed
-	if p.bl.Balance == 0 {
-		p.bl.Status = 0
+	bl.UpdatedAt = sql.NullTime{
+		Time:  now,
+		Valid: true,
 	}
 
-	p.bl.UpdateAt = now
+	updated, err := p.db.updateBalance(ctx, bl)
+	if err != nil {
+		return nil, fmt.Errorf("update balance: %w", err)
+	}
 
-	msg := fmt.Sprintf("today: %.2f", p.bl.Status)
+	msg := fmt.Sprintf("today: %.2f", updated.Status)
 
 	msgYin := tgbotapi.NewMessage(yin, msg)
 	msgYang := tgbotapi.NewMessage(yang, msg)
@@ -169,25 +188,23 @@ func (p *processor) handlerMinus(update tgbotapi.Update) ([]tgbotapi.MessageConf
 	return asSlice(msgYin, msgYang), nil
 }
 
-func (p *processor) handlerSetBalance(update tgbotapi.Update) ([]tgbotapi.MessageConfig, error) {
+func (p *processor) handlerSetBalance(ctx context.Context, update tgbotapi.Update) ([]tgbotapi.MessageConfig, error) {
 	text := update.Message.Text
 
-	parsed, err := strconv.ParseFloat(text[1:], 64)
+	balance, err := strconv.ParseFloat(text[1:], 64)
 	if err != nil {
 		return nil, fmt.Errorf("parse float: %w", err)
 	}
 
-	parsed = math.Abs(parsed)
+	balance = math.Abs(balance)
+	bl := startNewDayWithBalance(time.Now(), balance)
 
-	dayLimit := countDayLimit(parsed)
+	updated, err := p.db.updateBalance(ctx, bl)
+	if err != nil {
+		return nil, fmt.Errorf("get balance: %w", err)
+	}
 
-	p.bl.Balance = parsed
-	p.bl.Status = dayLimit
-	p.bl.DayLimit = dayLimit
-	p.bl.TodayAdded = 0
-	p.bl.TodaySpent = 0
-
-	msg := fmt.Sprintf("set balance: %.2f", p.bl.Balance)
+	msg := fmt.Sprintf("set balance: %.2f", updated.Balance)
 
 	msgYin := tgbotapi.NewMessage(yin, msg)
 	msgYang := tgbotapi.NewMessage(yang, msg)
@@ -205,21 +222,30 @@ func (p *processor) handlerSetBalance(update tgbotapi.Update) ([]tgbotapi.Messag
 	return asSlice(msgYin, msgYang), nil
 }
 
-func (p *processor) handlerStats(update tgbotapi.Update) ([]tgbotapi.MessageConfig, error) {
+func (p *processor) handlerStats(ctx context.Context, update tgbotapi.Update) ([]tgbotapi.MessageConfig, error) {
+	bl, err := p.db.getBalance(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get balance: %w", err)
+	}
+
 	now := time.Now()
 
-	isNewDay := p.bl.UpdateAt.Day() != now.Day()
+	isNewDay := bl.UpdatedAt.Time.Day() != now.Day()
 	if isNewDay {
-		p.startNewDay(now)
+		bl = startNewDayWithBalance(now, bl.Balance)
+		bl, err = p.db.updateBalance(ctx, bl)
+		if err != nil {
+			return nil, fmt.Errorf("update balance: %w", err)
+		}
 	}
 
 	msg := fmt.Sprintf(
 		"balance: %.2f\n"+
 			"today: %.2f\n"+
 			"day limit: %.2f",
-		p.bl.Balance,
-		p.bl.Status,
-		p.bl.DayLimit,
+		bl.Balance,
+		bl.Status,
+		bl.DayLimit,
 	)
 
 	daysLeft := monthLastDay(now) - now.Day() + 1
@@ -229,9 +255,9 @@ func (p *processor) handlerStats(update tgbotapi.Update) ([]tgbotapi.MessageConf
 		msg,
 		daysLeft)
 
-	tomorrowLimit := p.bl.Balance
+	tomorrowLimit := bl.Balance
 	if daysLeft > 1 {
-		tomorrowLimit = p.bl.Balance / float64(daysLeft-1)
+		tomorrowLimit = bl.Balance / float64(daysLeft-1)
 	}
 	msg = fmt.Sprintf(
 		"%s\n"+
@@ -239,24 +265,42 @@ func (p *processor) handlerStats(update tgbotapi.Update) ([]tgbotapi.MessageConf
 		msg,
 		tomorrowLimit)
 
-	if p.bl.TodaySpent > 0 {
+	if bl.TodaySpent > 0 {
 		msg = fmt.Sprintf(
 			"%s\n"+
 				"today spent: %.2f",
 			msg,
-			p.bl.TodaySpent)
+			bl.TodaySpent)
 	}
 
-	if p.bl.TodayAdded > 0 {
+	if bl.TodayAdded > 0 {
 		msg = fmt.Sprintf(
 			"%s\n"+
 				"today added: %.2f",
 			msg,
-			p.bl.TodayAdded)
+			bl.TodayAdded)
 	}
 
 	tgMsg := tgbotapi.NewMessage(update.Message.From.ID, msg)
 	return asSlice(tgMsg), nil
+}
+
+func startNewDayWithBalance(startTime time.Time, balance float64) *balanceLimit {
+	limit := countDayLimit(balance)
+
+	bl := &balanceLimit{
+		Balance:  balance,
+		Status:   limit,
+		DayLimit: limit,
+		UpdatedAt: sql.NullTime{
+			Time:  startTime,
+			Valid: true,
+		},
+		TodaySpent: 0,
+		TodayAdded: 0,
+	}
+
+	return bl
 }
 
 func asSlice(msg ...tgbotapi.MessageConfig) []tgbotapi.MessageConfig {
@@ -280,13 +324,4 @@ func monthLastDay(t time.Time) int {
 			return i - 1
 		}
 	}
-}
-
-func (p *processor) startNewDay(now time.Time) {
-	limit := countDayLimit(p.bl.Balance)
-	p.bl.Status = limit
-	p.bl.DayLimit = limit
-	p.bl.UpdateAt = now
-	p.bl.TodaySpent = 0
-	p.bl.TodayAdded = 0
 }

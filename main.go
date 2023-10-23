@@ -2,16 +2,16 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
+	"database/sql"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	_ "github.com/lib/pq"
+	"github.com/spf13/viper"
 	"log"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
-	"time"
 )
 
 const (
@@ -22,24 +22,34 @@ const (
 const appMode = appModeProd
 
 const (
-	fileName   = "balance.daily"
-	yin        = 741126351
-	yang       = 381523363
-	tgBotToken = "6628221972:AAHJLliOWzvLMN5Fwfqu5kiGgehQyc4vh-0"
+	yin  = 741126351
+	yang = 381523363
 )
 
 func main() {
-	balanceLimit, err := readBalanceFromFile(fileName)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	viper.AutomaticEnv()
+
+	tgBotToken := viper.GetString("TELEGRAM_BOT_API_TOKEN")
+	if tgBotToken == "" {
+		log.Fatalf("empty telegram bot api token")
+	}
+
+	dbConn := viper.GetString("POSTGRES_DSN")
+	if dbConn == "" {
+		log.Fatalf("empty db conn string")
+	}
+
+	db, err := initDatabase(dbConn)
 	if err != nil {
-		log.Fatalf("failed read balance from file: %v", err)
+		log.Fatalf("failed init database: %v", err)
 	}
 
 	bot, err := tgbotapi.NewBotAPI(tgBotToken)
 	if err != nil {
 		log.Fatalf("failed new bot api: %v", err)
 	}
-
-	log.Printf("Authorized on account %s", bot.Self.UserName)
 
 	bot.Debug = appMode == appModeDev
 
@@ -49,13 +59,11 @@ func main() {
 		}
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := start(ctx, bot, balanceLimit); err != nil {
+		if err := start(ctx, bot, db); err != nil {
 			log.Printf("failed start: %v", err)
 		}
 	}()
@@ -66,40 +74,6 @@ func main() {
 			log.Fatalf("failed send goodbye message: %v", err)
 		}
 	}
-}
-
-func readBalanceFromFile(fileName string) (*balanceLimit, error) {
-	b, err := os.ReadFile(fileName)
-
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return &balanceLimit{}, nil
-		}
-		return nil, fmt.Errorf("open file %s, err: %w", fileName, err)
-	}
-
-	l := &balanceLimit{}
-	if err := json.Unmarshal(b, &l); err != nil {
-		return nil, fmt.Errorf("unmarshal: %w", err)
-	}
-
-	if l == nil {
-		return &balanceLimit{}, nil
-	}
-
-	return l, nil
-}
-
-func writeBalanceToFile(bl *balanceLimit, fileName string) error {
-	b, err := json.Marshal(bl)
-	if err != nil {
-		return fmt.Errorf("unmarshal balance: %w", err)
-	}
-
-	if err := os.WriteFile(fileName, b, 0666); err != nil {
-		return fmt.Errorf("ailed write to file: %w", err)
-	}
-	return nil
 }
 
 func sendHello(bot *tgbotapi.BotAPI) error {
@@ -130,26 +104,16 @@ func sendGoodbye(bot *tgbotapi.BotAPI) error {
 	return nil
 }
 
-func start(ctx context.Context, bot *tgbotapi.BotAPI, balanceLimit *balanceLimit) error {
-	balanceSaveTicker := time.NewTicker(5 * time.Minute)
-	p := &processor{bl: balanceLimit}
-	defer func() {
-		if err := writeBalanceToFile(p.bl, fileName); err != nil {
-			log.Panic("write balance to file")
-		}
-	}()
+func start(ctx context.Context, bot *tgbotapi.BotAPI, db *Database) error {
+	p := &processor{db: db}
 
 	updates := bot.GetUpdatesChan(tgbotapi.NewUpdate(0))
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-balanceSaveTicker.C:
-			if err := writeBalanceToFile(p.bl, fileName); err != nil {
-				log.Printf("failed write balance to file: %v", err)
-			}
 		case update := <-updates:
-			messagesToSent := p.process(update)
+			messagesToSent := p.process(ctx, update)
 			for _, msg := range messagesToSent {
 				if _, err := bot.Send(msg); err != nil {
 					log.Printf("failed send msg: %v\n", err)
@@ -170,10 +134,12 @@ func gracefulShutdown(cancel func(), wg *sync.WaitGroup) {
 }
 
 type balanceLimit struct {
-	Balance    float64
-	Status     float64
-	DayLimit   float64
-	UpdateAt   time.Time
-	TodaySpent float64
-	TodayAdded float64
+	Id         int64        `db:"id"`
+	Balance    float64      `db:"balance"`
+	Status     float64      `db:"status"`
+	DayLimit   float64      `db:"day_limit"`
+	UpdatedAt  sql.NullTime `db:"updated_at"`
+	TodaySpent float64      `db:"today_spent"`
+	TodayAdded float64      `db:"today_added"`
+	Name       string       `db:"name"`
 }
