@@ -5,7 +5,7 @@ WORKDIR build
 COPY . .
 
 RUN go mod download
-RUN go build -o main main.go
+RUN go build -o main .
 
 FROM alpine:latest
 
