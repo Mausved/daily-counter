@@ -5,6 +5,7 @@ services:
     build: .
     container_name: daily-counter
     environment:
+      TELEGRAM_BOT_API_TOKEN: ${TELEGRAM_BOT_API_TOKEN}
       POSTGRES_DSN: ${POSTGRES_DSN}
     depends_on:
       - database
