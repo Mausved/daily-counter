@@ -41,11 +41,12 @@ jobs:
           
           rsync -avz ./.env  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/mausved/dailycounter/.env
           rsync -avz ./docker-compose.yaml  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/mausved/dailycounter/docker-compose.yaml
-          rsync -avz ./migrations  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/mausved/dailycounter/migrations
-          restart() {
+          rsync -avz ./migrations  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/mausved/dailycounter/
           
+          restart() {
           cd /home/mausved/dailycounter/
           docker-compose down
           docker-compose up -d
           }
+          
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "$(typeset -f); restart"
