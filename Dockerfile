@@ -9,14 +9,12 @@ RUN  --mount=type=cache,target=/go/pkg/mod \
      go mod download && \
      go build -o main .
 
-FROM alpine:latest
+FROM ubuntu
 
 USER 0
 
 WORKDIR /app
 
 COPY --from=builder /build/main /app/main
-
-USER 888
 
 CMD ["/app/main"]
