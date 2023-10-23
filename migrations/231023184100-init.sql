@@ -6,5 +6,5 @@ CREATE TABLE balance (
     day_limit FLOAT NOT NULL DEFAULT 0,
     today_spent FLOAT NOT NULL DEFAULT 0,
     today_added FLOAT NOT NULL DEFAULT 0,
-    updated_at TIMESTAMP,
+    updated_at TIMESTAMP
 );

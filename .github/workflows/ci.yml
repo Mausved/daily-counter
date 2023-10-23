@@ -36,7 +36,7 @@ jobs:
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "rm /home/mausved/dailycounter/.env || true"
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo TELEGRAM_BOT_API_TOKEN=${TELEGRAM_BOT_API_TOKEN} >> /home/mausved/dailycounter/.env"
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo POSTGRES_USER=${POSTGRES_USER} >> /home/mausved/dailycounter/.env"
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo POSTGRES_PASSWORD${POSTGRES_PASSWORD} >> /home/mausved/dailycounter/.env"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo POSTGRES_PASSWORD=${POSTGRES_PASSWORD} >> /home/mausved/dailycounter/.env"
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo POSTGRES_DATABASE=${POSTGRES_DATABASE} >> /home/mausved/dailycounter/.env"
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo POSTGRES_DSN=${POSTGRES_DSN} >> /home/mausved/dailycounter/.env"
           

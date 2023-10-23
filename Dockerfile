@@ -16,5 +16,7 @@ USER 0
 WORKDIR /app
 
 COPY --from=builder /build/main /app/main
+RUN apt update
+RUN apt install -y --reinstall ca-certificates
 
 CMD ["/app/main"]

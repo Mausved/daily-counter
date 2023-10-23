@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"log"
 	"math"
 	"regexp"
 	"strconv"
@@ -40,24 +42,28 @@ func (p *processor) process(ctx context.Context, update tgbotapi.Update) []tgbot
 	case plusPattern.MatchString(text):
 		messages, err := p.handlerPlus(ctx, update)
 		if err != nil {
+			log.Printf("failed handler plus: %v", err)
 			return asSlice(errMsg())
 		}
 		return messages
 	case minusPattern.MatchString(text):
 		messages, err := p.handlerMinus(ctx, update)
 		if err != nil {
+			log.Printf("failed handler minus: %v", err)
 			return asSlice(errMsg())
 		}
 		return messages
 	case balancePattern.MatchString(text):
 		messages, err := p.handlerSetBalance(ctx, update)
 		if err != nil {
+			log.Printf("failed handler set balance: %v", err)
 			return asSlice(errMsg())
 		}
 		return messages
 	case strings.ToLower(text) == "s":
 		messages, err := p.handlerStats(ctx, update)
 		if err != nil {
+			log.Printf("failed handler stats: %v", err)
 			return asSlice(errMsg())
 		}
 		return messages
@@ -82,7 +88,7 @@ func (p *processor) handlerPlus(ctx context.Context, update tgbotapi.Update) ([]
 
 	now := time.Now()
 
-	isNewDay := bl.UpdateAt.Day() != now.Day()
+	isNewDay := bl.UpdatedAt.Time.Day() != now.Day()
 	if isNewDay {
 		bl = startNewDayWithBalance(now, bl.Balance)
 	}
@@ -130,7 +136,7 @@ func (p *processor) handlerMinus(ctx context.Context, update tgbotapi.Update) ([
 
 	now := time.Now()
 
-	isNewDay := bl.UpdateAt.Day() != now.Day()
+	isNewDay := bl.UpdatedAt.Time.Day() != now.Day()
 	if isNewDay {
 		bl = startNewDayWithBalance(now, bl.Balance)
 	}
@@ -154,7 +160,10 @@ func (p *processor) handlerMinus(ctx context.Context, update tgbotapi.Update) ([
 		bl.Status = 0
 	}
 
-	bl.UpdateAt = now
+	bl.UpdatedAt = sql.NullTime{
+		Time:  now,
+		Valid: true,
+	}
 
 	updated, err := p.db.updateBalance(ctx, bl)
 	if err != nil {
@@ -221,7 +230,7 @@ func (p *processor) handlerStats(ctx context.Context, update tgbotapi.Update) ([
 
 	now := time.Now()
 
-	isNewDay := bl.UpdateAt.Day() != now.Day()
+	isNewDay := bl.UpdatedAt.Time.Day() != now.Day()
 	if isNewDay {
 		bl = startNewDayWithBalance(now, bl.Balance)
 		bl, err = p.db.updateBalance(ctx, bl)
@@ -280,10 +289,13 @@ func startNewDayWithBalance(startTime time.Time, balance float64) *balanceLimit 
 	limit := countDayLimit(balance)
 
 	bl := &balanceLimit{
-		Balance:    balance,
-		Status:     limit,
-		DayLimit:   limit,
-		UpdateAt:   startTime,
+		Balance:  balance,
+		Status:   limit,
+		DayLimit: limit,
+		UpdatedAt: sql.NullTime{
+			Time:  startTime,
+			Valid: true,
+		},
 		TodaySpent: 0,
 		TodayAdded: 0,
 	}

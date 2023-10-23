@@ -8,18 +8,26 @@ services:
       TELEGRAM_BOT_API_TOKEN: ${TELEGRAM_BOT_API_TOKEN}
       POSTGRES_DSN: ${POSTGRES_DSN}
     depends_on:
-      - database
+      database:
+        condition: service_healthy
 
   database:
     image: postgres
+    ports:
+      - '6432:5432'
     container_name: daily-counter-db
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DATABASE: ${POSTGRES_DATABASE}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - ./migrations:/docker-entrypoint-initdb.d/
       - daily-counter-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -h database"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
 
 volumes:
     daily-counter-db:

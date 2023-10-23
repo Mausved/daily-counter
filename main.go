@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	_ "github.com/lib/pq"
@@ -11,7 +12,6 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
-	"time"
 )
 
 const (
@@ -28,6 +28,8 @@ const (
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
+
+	viper.AutomaticEnv()
 
 	tgBotToken := viper.GetString("TELEGRAM_BOT_API_TOKEN")
 	if tgBotToken == "" {
@@ -48,8 +50,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed new bot api: %v", err)
 	}
-
-	log.Printf("Authorized on account %s", bot.Self.UserName)
 
 	bot.Debug = appMode == appModeDev
 
@@ -134,10 +134,12 @@ func gracefulShutdown(cancel func(), wg *sync.WaitGroup) {
 }
 
 type balanceLimit struct {
-	Balance    float64   `db:"balance"`
-	Status     float64   `db:"status"`
-	DayLimit   float64   `db:"day_limit"`
-	UpdateAt   time.Time `db:"update_at"`
-	TodaySpent float64   `db:"today_spent"`
-	TodayAdded float64   `db:"today_added"`
+	Id         int64        `db:"id"`
+	Balance    float64      `db:"balance"`
+	Status     float64      `db:"status"`
+	DayLimit   float64      `db:"day_limit"`
+	UpdatedAt  sql.NullTime `db:"updated_at"`
+	TodaySpent float64      `db:"today_spent"`
+	TodayAdded float64      `db:"today_added"`
+	Name       string       `db:"name"`
 }
