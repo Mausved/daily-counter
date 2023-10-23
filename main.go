@@ -30,8 +30,15 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	tgBotToken := viper.GetString("TELEGRAM_BOT_API_TOKEN")
+	if tgBotToken == "" {
+		log.Fatalf("empty telegram bot api token")
+	}
 
 	dbConn := viper.GetString("POSTGRES_DSN")
+	if dbConn == "" {
+		log.Fatalf("empty db conn string")
+	}
+
 	db, err := initDatabase(dbConn)
 	if err != nil {
 		log.Fatalf("failed init database: %v", err)
