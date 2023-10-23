@@ -34,8 +34,8 @@ jobs:
           rsync -avz ./docker-compose.yaml  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/mausved/dailycounter/docker-compose.yaml
           restart() {
           cd /home/mausved/dailycounter/
-          docker-compose pull
-          docker-compose down
-          docker-compose up -d
+          sudo docker-compose pull
+          sudo docker-compose down
+          sudo docker-compose up -d
           }
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "$(typeset -f); restart"
