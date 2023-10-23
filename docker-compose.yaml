@@ -4,6 +4,8 @@ services:
     image: mausved/daily-counter
     build: .
     container_name: daily-counter
+    environment:
+      POSTGRES_DSN: ${POSTGRES_DSN}
     depends_on:
       - database
 

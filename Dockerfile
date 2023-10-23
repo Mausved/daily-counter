@@ -11,8 +11,12 @@ RUN  --mount=type=cache,target=/go/pkg/mod \
 
 FROM alpine:latest
 
+USER 0
+
 WORKDIR /app
 
 COPY --from=builder /build/main /app/main
+
+USER 888
 
 CMD ["/app/main"]
