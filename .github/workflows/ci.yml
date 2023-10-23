@@ -41,7 +41,7 @@ jobs:
           
           rsync -avz ./.env  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/mausved/dailycounter/.env
           rsync -avz ./docker-compose.yaml  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/mausved/dailycounter/docker-compose.yaml
-          rsync -avz ./migrations  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/mausved/dailycounter/
+          rsync -avz ./migrations/  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/mausved/dailycounter/migrations/
           
           restart() {
           cd /home/mausved/dailycounter/
