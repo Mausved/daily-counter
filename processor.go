@@ -21,7 +21,7 @@ type processor struct {
 	db *Database
 }
 
-func (p *processor) process(ctx context.Context, update tgbotapi.Update) []tgbotapi.MessageConfig {
+func (p *processor) process(ctx context.Context, update tgbotapi.Update) (messages []tgbotapi.MessageConfig) {
 	if update.Message == nil {
 		return nil
 	}
@@ -30,13 +30,19 @@ func (p *processor) process(ctx context.Context, update tgbotapi.Update) []tgbot
 		return nil
 	}
 
-	text := update.Message.Text
-
 	errMsg := func() tgbotapi.MessageConfig {
 		m := tgbotapi.NewMessage(update.Message.From.ID, "ошибОчка, коряво написал, фраер")
 		m.ReplyToMessageID = update.Message.MessageID
 		return m
 	}
+
+	defer func() {
+		if err := recover(); err != nil {
+			messages = asSlice(errMsg())
+		}
+	}()
+
+	text := update.Message.Text
 
 	switch {
 	case plusPattern.MatchString(text):
@@ -81,6 +87,10 @@ func (p *processor) process(ctx context.Context, update tgbotapi.Update) []tgbot
 }
 
 func (p *processor) handlerPlus(ctx context.Context, update tgbotapi.Update) ([]tgbotapi.MessageConfig, error) {
+	if len(update.Message.Text) < 1 {
+		return nil, fmt.Errorf("invalid set balance pattern")
+	}
+
 	bl, err := p.db.getBalance(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get balance: %w", err)
@@ -128,6 +138,10 @@ func (p *processor) handlerPlus(ctx context.Context, update tgbotapi.Update) ([]
 }
 
 func (p *processor) handlerMinus(ctx context.Context, update tgbotapi.Update) ([]tgbotapi.MessageConfig, error) {
+	if len(update.Message.Text) < 1 {
+		return nil, fmt.Errorf("invalid set balance pattern")
+	}
+
 	bl, err := p.db.getBalance(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get balance: %w", err)
@@ -186,6 +200,10 @@ func (p *processor) handlerMinus(ctx context.Context, update tgbotapi.Update) ([
 }
 
 func (p *processor) handlerSetBalance(ctx context.Context, update tgbotapi.Update) ([]tgbotapi.MessageConfig, error) {
+	if len(update.Message.Text) < 1 {
+		return nil, fmt.Errorf("invalid set balance pattern")
+	}
+
 	balance, err := valueFromMessageText(update.Message.Text[1:])
 	if err != nil {
 		return nil, err
@@ -325,6 +343,11 @@ func monthLastDay(t time.Time) int {
 
 func valueFromMessageText(text string) (float64, error) {
 	separateBySpaces := strings.Fields(text)
+
+	if len(separateBySpaces) == 0 {
+		return 0, fmt.Errorf("invalid format")
+	}
+
 	value := separateBySpaces[0]
 
 	parsed, err := strconv.ParseFloat(value, 64)
