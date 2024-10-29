@@ -36,6 +36,7 @@ func main() {
 		log.Fatalf("empty telegram bot api token")
 	}
 
+	// postgres://myuser:mypassword@localhost:5432/mydatabase
 	dbConn := viper.GetString("POSTGRES_DSN")
 	if dbConn == "" {
 		log.Fatalf("empty db conn string")

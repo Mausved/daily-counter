@@ -13,9 +13,9 @@ import (
 	"time"
 )
 
-var balancePattern = regexp.MustCompile(`b\d*`)
-var plusPattern = regexp.MustCompile(`\+\d*`)
-var minusPattern = regexp.MustCompile(`-\d*`)
+var balancePattern = regexp.MustCompile(`^b\d*`)
+var plusPattern = regexp.MustCompile(`^\+\d*`)
+var minusPattern = regexp.MustCompile(`^-\d*`)
 
 type processor struct {
 	db *Database
@@ -70,9 +70,9 @@ func (p *processor) process(ctx context.Context, update tgbotapi.Update) []tgbot
 	default:
 		msg := "ну ты совсем куку...\n" +
 			"вот тебе команды, балда:\n" +
-			"+x - add income\n" +
-			"-x - add consumption\n" +
-			"bXXX - set balance=XXX\n" +
+			"+x comment - add income\n" +
+			"-x comment - add consumption\n" +
+			"bXXX comment - set balance=XXX\n" +
 			"s - get statistics\n"
 		tgMsg := tgbotapi.NewMessage(update.Message.From.ID, msg)
 		return asSlice(tgMsg)
@@ -93,10 +93,9 @@ func (p *processor) handlerPlus(ctx context.Context, update tgbotapi.Update) ([]
 		bl = startNewDayWithBalance(now, bl.Balance)
 	}
 
-	text := update.Message.Text
-	parsed, err := strconv.ParseFloat(text, 64)
+	parsed, err := valueFromMessageText(update.Message.Text)
 	if err != nil {
-		return nil, fmt.Errorf("parse float: %w", err)
+		return nil, err
 	}
 
 	parsed = math.Abs(parsed)
@@ -110,18 +109,18 @@ func (p *processor) handlerPlus(ctx context.Context, update tgbotapi.Update) ([]
 		return nil, fmt.Errorf("update balance: %w", err)
 	}
 
-	msg := fmt.Sprintf("today: %.2f", updated.Status)
+	msg := fmt.Sprintf("today left: %.2f", updated.Status)
 
 	msgYin := tgbotapi.NewMessage(yin, msg)
 	msgYang := tgbotapi.NewMessage(yang, msg)
 
 	if update.Message.From.ID == yin {
-		msgYang.Text = fmt.Sprintf("updated by @%s\n%s\n%s", update.Message.From.UserName, text, msgYang.Text)
+		msgYang.Text = fmt.Sprintf("updated by @%s\n%s\n%s", update.Message.From.UserName, update.Message.Text, msgYang.Text)
 		msgYin.ReplyToMessageID = update.Message.MessageID
 	}
 
 	if update.Message.From.ID == yang {
-		msgYin.Text = fmt.Sprintf("updated by @%s\n%s\n%s", update.Message.From.UserName, text, msgYin.Text)
+		msgYin.Text = fmt.Sprintf("updated by @%s\n%s\n%s", update.Message.From.UserName, update.Message.Text, msgYin.Text)
 		msgYang.ReplyToMessageID = update.Message.MessageID
 	}
 
@@ -141,11 +140,9 @@ func (p *processor) handlerMinus(ctx context.Context, update tgbotapi.Update) ([
 		bl = startNewDayWithBalance(now, bl.Balance)
 	}
 
-	text := update.Message.Text
-
-	parsed, err := strconv.ParseFloat(text, 64)
+	parsed, err := valueFromMessageText(update.Message.Text)
 	if err != nil {
-		return nil, fmt.Errorf("parse float: %w", err)
+		return nil, err
 	}
 
 	parsed = math.Abs(parsed)
@@ -170,18 +167,18 @@ func (p *processor) handlerMinus(ctx context.Context, update tgbotapi.Update) ([
 		return nil, fmt.Errorf("update balance: %w", err)
 	}
 
-	msg := fmt.Sprintf("today: %.2f", updated.Status)
+	msg := fmt.Sprintf("today left: %.2f", updated.Status)
 
 	msgYin := tgbotapi.NewMessage(yin, msg)
 	msgYang := tgbotapi.NewMessage(yang, msg)
 
 	if update.Message.From.ID == yin {
-		msgYang.Text = fmt.Sprintf("updated by @%s\n%s\n%s", update.Message.From.UserName, text, msgYang.Text)
+		msgYang.Text = fmt.Sprintf("updated by @%s\n%s\n%s", update.Message.From.UserName, update.Message.Text, msgYang.Text)
 		msgYin.ReplyToMessageID = update.Message.MessageID
 	}
 
 	if update.Message.From.ID == yang {
-		msgYin.Text = fmt.Sprintf("updated by @%s\n%s\n%s", update.Message.From.UserName, text, msgYin.Text)
+		msgYin.Text = fmt.Sprintf("updated by @%s\n%s\n%s", update.Message.From.UserName, update.Message.Text, msgYin.Text)
 		msgYang.ReplyToMessageID = update.Message.MessageID
 	}
 
@@ -189,11 +186,9 @@ func (p *processor) handlerMinus(ctx context.Context, update tgbotapi.Update) ([
 }
 
 func (p *processor) handlerSetBalance(ctx context.Context, update tgbotapi.Update) ([]tgbotapi.MessageConfig, error) {
-	text := update.Message.Text
-
-	balance, err := strconv.ParseFloat(text[1:], 64)
+	balance, err := valueFromMessageText(update.Message.Text[1:])
 	if err != nil {
-		return nil, fmt.Errorf("parse float: %w", err)
+		return nil, err
 	}
 
 	balance = math.Abs(balance)
@@ -210,12 +205,12 @@ func (p *processor) handlerSetBalance(ctx context.Context, update tgbotapi.Updat
 	msgYang := tgbotapi.NewMessage(yang, msg)
 
 	if update.Message.From.ID == yin {
-		msgYang.Text = fmt.Sprintf("setted balance by @%s\n%s\n%s", update.Message.From.UserName, text, msgYang.Text)
+		msgYang.Text = fmt.Sprintf("setted balance by @%s\n%s\n%s", update.Message.From.UserName, update.Message.Text, msgYang.Text)
 		msgYin.ReplyToMessageID = update.Message.MessageID
 	}
 
 	if update.Message.From.ID == yang {
-		msgYin.Text = fmt.Sprintf("setted balance by @%s\n%s\n%s", update.Message.From.UserName, text, msgYin.Text)
+		msgYin.Text = fmt.Sprintf("setted balance by @%s\n%s\n%s", update.Message.From.UserName, update.Message.Text, msgYin.Text)
 		msgYang.ReplyToMessageID = update.Message.MessageID
 	}
 
@@ -249,21 +244,23 @@ func (p *processor) handlerStats(ctx context.Context, update tgbotapi.Update) ([
 	)
 
 	daysLeft := monthLastDay(now) - now.Day() + 1
-	msg = fmt.Sprintf(
-		"%s\n"+
-			"days left: %d",
-		msg,
-		daysLeft)
 
 	tomorrowLimit := bl.Balance
 	if daysLeft > 1 {
 		tomorrowLimit = bl.Balance / float64(daysLeft-1)
 	}
+
 	msg = fmt.Sprintf(
 		"%s\n"+
 			"tomorrow limit: %.2f",
 		msg,
 		tomorrowLimit)
+
+	msg = fmt.Sprintf(
+		"%s\n"+
+			"days left: %d",
+		msg,
+		daysLeft)
 
 	if bl.TodaySpent > 0 {
 		msg = fmt.Sprintf(
@@ -324,4 +321,16 @@ func monthLastDay(t time.Time) int {
 			return i - 1
 		}
 	}
+}
+
+func valueFromMessageText(text string) (float64, error) {
+	separateBySpaces := strings.Fields(text)
+	value := separateBySpaces[0]
+
+	parsed, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parse float: %w", err)
+	}
+
+	return parsed, nil
 }
