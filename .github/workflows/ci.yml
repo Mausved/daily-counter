@@ -45,6 +45,7 @@ jobs:
           
           restart() {
           cd /home/mausved/dailycounter/
+          docker-compose pull
           docker-compose down
           docker-compose up -d
           }
