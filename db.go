@@ -104,7 +104,7 @@ func (db *Database) getTransactionsForMonth(_ context.Context, balanceID int) (m
 	compareStringUntil := fmt.Sprintf(`%d-%d-%d`, yy, mm, lastDay)
 
 	rows, err := db.sql.Queryx(
-		`SELECT * FROM transactions WHERE balance_id=$1 and date >= $2 and date <= $3 and delta < 0`,
+		`SELECT * FROM transactions WHERE balance_id=$1 and date >= $2 and date <= $3 and delta < 0 and is_ignored_in_stat = false`,
 		balanceID,
 		compareStringBefore,
 		compareStringUntil,
