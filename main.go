@@ -19,7 +19,7 @@ const (
 	appModeProd = "prod"
 )
 
-const appMode = appModeProd
+const appMode = appModeDev
 
 const (
 	yin  = 741126351
@@ -36,7 +36,7 @@ func main() {
 		log.Fatalf("empty telegram bot api token")
 	}
 
-	// postgres://myuser:mypassword@localhost:5432/mydatabase
+	// postgres://myuser:mypassword@localhost:5432/mydatabase?sslmode=disable
 	dbConn := viper.GetString("POSTGRES_DSN")
 	if dbConn == "" {
 		log.Fatalf("empty db conn string")

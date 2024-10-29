@@ -67,12 +67,20 @@ func (p *processor) process(ctx context.Context, update tgbotapi.Update) (messag
 			return asSlice(errMsg())
 		}
 		return messages
+	case strings.ToLower(text) == "full":
+		messages, err := p.handlerFullTagStats(ctx, update)
+		if err != nil {
+			log.Printf("failed handler full tag stats: %v", err)
+			return asSlice(errMsg())
+		}
+		return messages
 	default:
 		msg := "ну ты совсем куку...\n" +
 			"вот тебе команды, балда:\n" +
 			"+x comment - add income\n" +
 			"-x comment - add consumption\n" +
 			"bXXX comment - set balance=XXX\n" +
+			"full - get stats spending by tags\n" +
 			"s - get statistics\n"
 		tgMsg := tgbotapi.NewMessage(update.Message.From.ID, msg)
 		return asSlice(tgMsg)
@@ -121,19 +129,21 @@ func monthLastDay(t time.Time) int {
 	}
 }
 
-func valueFromMessageText(text string) (float64, error) {
+func valueFromMessageText(text string) (float64, string, error) {
 	separateBySpaces := strings.Fields(text)
 
 	if len(separateBySpaces) == 0 {
-		return 0, fmt.Errorf("invalid format")
+		return 0, "", fmt.Errorf("invalid format")
 	}
 
 	value := separateBySpaces[0]
 
 	parsed, err := strconv.ParseFloat(value, 64)
 	if err != nil {
-		return 0, fmt.Errorf("parse float: %w", err)
+		return 0, "", fmt.Errorf("parse float: %w", err)
 	}
 
-	return parsed, nil
+	tag := strings.Join(separateBySpaces[1:], " ")
+
+	return parsed, tag, nil
 }

@@ -16,7 +16,7 @@ func (p *processor) handlerSetBalance(ctx context.Context, update tgbotapi.Updat
 		return nil, fmt.Errorf("invalid set balance pattern")
 	}
 
-	balance, err := valueFromMessageText(update.Message.Text[1:])
+	balance, _, err := valueFromMessageText(update.Message.Text[1:])
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +24,7 @@ func (p *processor) handlerSetBalance(ctx context.Context, update tgbotapi.Updat
 	balance = math.Abs(balance)
 	bl := startNewDayWithBalance(time.Now(), balance)
 
-	updated, err := p.db.updateBalance(ctx, bl)
+	updated, err := p.db.updateOnlyBalance(ctx, bl)
 	if err != nil {
 		return nil, fmt.Errorf("get balance: %w", err)
 	}

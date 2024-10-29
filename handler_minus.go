@@ -29,10 +29,12 @@ func (p *processor) handlerMinus(ctx context.Context, update tgbotapi.Update) ([
 		bl = startNewDayWithBalance(now, bl.Balance)
 	}
 
-	parsed, err := valueFromMessageText(update.Message.Text)
+	parsed, tag, err := valueFromMessageText(update.Message.Text)
 	if err != nil {
 		return nil, err
 	}
+
+	parsedWithSign := parsed
 
 	parsed = math.Abs(parsed)
 	bl.Balance -= parsed
@@ -51,7 +53,7 @@ func (p *processor) handlerMinus(ctx context.Context, update tgbotapi.Update) ([
 		Valid: true,
 	}
 
-	updated, err := p.db.updateBalance(ctx, bl)
+	updated, err := p.db.updateBalance(ctx, bl, parsedWithSign, tag)
 	if err != nil {
 		return nil, fmt.Errorf("update balance: %w", err)
 	}
