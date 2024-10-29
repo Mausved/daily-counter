@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-var setBalancePattern = regexp.MustCompile(`^b\d*`)
+var setBalancePattern = regexp.MustCompile(`^[bB]\d*`)
 
 func (p *processor) handlerSetBalance(ctx context.Context, update tgbotapi.Update) ([]tgbotapi.MessageConfig, error) {
 	if len(update.Message.Text) < 1 {
