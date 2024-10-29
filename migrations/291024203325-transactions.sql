@@ -1,8 +1,9 @@
 CREATE TABLE transactions
 (
-    uuid       uuid PRIMARY KEY,
-    balance_id INT          NOT NULL,
-    delta      float        NOT NULL,
-    date       date         NOT NULL,
-    tag        VARCHAR(255) NOT NULL
+    uuid               uuid PRIMARY KEY,
+    balance_id         INT          NOT NULL,
+    delta              float        NOT NULL,
+    date               date         NOT NULL,
+    tag                VARCHAR(255) NOT NULL,
+    is_ignored_in_stat bool         NOT NULL
 );

@@ -88,10 +88,11 @@ func (p *processor) process(ctx context.Context, update tgbotapi.Update) (messag
 
 }
 
-func startNewDayWithBalance(startTime time.Time, balance float64) *balanceLimit {
+func startNewDayWithBalance(id int64, startTime time.Time, balance float64) *balanceLimit {
 	limit := countDayLimit(balance)
 
 	bl := &balanceLimit{
+		Id:       id,
 		Balance:  balance,
 		Status:   limit,
 		DayLimit: limit,

@@ -25,7 +25,7 @@ func (p *processor) handlerPlus(ctx context.Context, update tgbotapi.Update) ([]
 
 	isNewDay := bl.UpdatedAt.Time.Day() != now.Day()
 	if isNewDay {
-		bl = startNewDayWithBalance(now, bl.Balance)
+		bl = startNewDayWithBalance(bl.Id, now, bl.Balance)
 	}
 
 	parsed, tag, err := valueFromMessageText(update.Message.Text)

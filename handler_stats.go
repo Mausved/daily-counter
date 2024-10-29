@@ -17,7 +17,7 @@ func (p *processor) handlerStats(ctx context.Context, update tgbotapi.Update) ([
 
 	isNewDay := bl.UpdatedAt.Time.Day() != now.Day()
 	if isNewDay {
-		bl = startNewDayWithBalance(now, bl.Balance)
+		bl = startNewDayWithBalance(bl.Id, now, bl.Balance)
 		bl, err = p.db.updateOnlyBalance(ctx, bl)
 		if err != nil {
 			return nil, fmt.Errorf("update balance: %w", err)

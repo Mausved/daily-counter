@@ -51,12 +51,13 @@ func (db *Database) updateBalance(
 		uuid := uuid.NewString()
 
 		_, err := db.sql.Queryx(
-			`INSERT INTO transactions (uuid, balance_id, delta, date, tag) VALUES ($1, $2, $3, $4, $5)`,
+			`INSERT INTO transactions (uuid, balance_id, delta, date, tag, is_ignored_in_stat) VALUES ($1, $2, $3, $4, $5, $6)`,
 			uuid,
 			bl.Id,
 			delta,
 			time.Now().Format(time.DateOnly),
 			tag,
+			false,
 		)
 
 		if err != nil {
@@ -114,11 +115,12 @@ func (db *Database) getTransactionsForMonth(_ context.Context, balanceID int) (m
 	}
 
 	type tr struct {
-		UUID      string    `db:"uuid"`
-		BalanceID int       `db:"balance_id"`
-		Delta     float64   `db:"delta"`
-		Date      time.Time `db:"date"`
-		Tag       string    `db:"tag"`
+		UUID            string    `db:"uuid"`
+		BalanceID       int       `db:"balance_id"`
+		Delta           float64   `db:"delta"`
+		Date            time.Time `db:"date"`
+		Tag             string    `db:"tag"`
+		IsIgnoredInStat bool      `db:"is_ignored_in_stat"`
 	}
 
 	result := make(map[string]float64)
@@ -128,6 +130,10 @@ func (db *Database) getTransactionsForMonth(_ context.Context, balanceID int) (m
 
 		if err := rows.StructScan(&t); err != nil {
 			return nil, fmt.Errorf("scan: %w", err)
+		}
+
+		if t.IsIgnoredInStat {
+			continue
 		}
 
 		tag := t.Tag
@@ -140,4 +146,18 @@ func (db *Database) getTransactionsForMonth(_ context.Context, balanceID int) (m
 	}
 
 	return result, nil
+}
+
+func (db *Database) IgnoreAllTransactionsInStat(_ context.Context, balanceID int64) error {
+	_, err := db.sql.Queryx(
+		`UPDATE transactions SET is_ignored_in_stat = $1 WHERE balance_id=$2`,
+		true,
+		balanceID,
+	)
+
+	if err != nil {
+		return fmt.Errorf("queryx: %w", err)
+	}
+
+	return nil
 }

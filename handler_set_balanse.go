@@ -21,12 +21,22 @@ func (p *processor) handlerSetBalance(ctx context.Context, update tgbotapi.Updat
 		return nil, err
 	}
 
+	bl, err := p.db.getBalance(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get balance: %w", err)
+	}
+
 	balance = math.Abs(balance)
-	bl := startNewDayWithBalance(time.Now(), balance)
+	bl = startNewDayWithBalance(bl.Id, time.Now(), balance)
 
 	updated, err := p.db.updateOnlyBalance(ctx, bl)
 	if err != nil {
 		return nil, fmt.Errorf("get balance: %w", err)
+	}
+
+	err = p.db.IgnoreAllTransactionsInStat(ctx, bl.Id)
+	if err != nil {
+		return nil, fmt.Errorf("ignore all transactions in stat")
 	}
 
 	msg := fmt.Sprintf("set balance: %.2f", updated.Balance)
