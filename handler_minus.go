@@ -38,13 +38,10 @@ func (p *processor) handlerMinus(ctx context.Context, update tgbotapi.Update) ([
 
 	parsed = math.Abs(parsed)
 	bl.Balance -= parsed
-	if bl.Balance < 0 {
-		bl.Balance = 0
-	}
 
 	bl.TodaySpent += parsed
 	bl.Status -= parsed
-	if bl.Balance == 0 {
+	if bl.Balance < 0 {
 		bl.Status = 0
 	}
 

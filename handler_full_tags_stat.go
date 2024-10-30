@@ -13,7 +13,7 @@ func (p *processor) handlerFullTagStats(ctx context.Context, update tgbotapi.Upd
 		return nil, fmt.Errorf("get balance: %w", err)
 	}
 
-	result, err := p.db.getTransactionsForMonth(ctx, int(bl.Id))
+	result, err := p.db.getSpendingTransactionsForMonth(ctx, int(bl.Id))
 	if err != nil {
 		return nil, fmt.Errorf("get transactions")
 	}

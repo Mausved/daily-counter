@@ -4,6 +4,7 @@ CREATE TABLE transactions
     balance_id         INT          NOT NULL,
     delta              float        NOT NULL,
     date               date         NOT NULL,
-    tag                VARCHAR(255) NOT NULL,
-    is_ignored_in_stat bool         NOT NULL
+    tag                VARCHAR(255) NOT NULL
 );
+
+CREATE INDEX transactions_balance_id on transactions (balance_id);

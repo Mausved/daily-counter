@@ -34,11 +34,6 @@ func (p *processor) handlerSetBalance(ctx context.Context, update tgbotapi.Updat
 		return nil, fmt.Errorf("get balance: %w", err)
 	}
 
-	err = p.db.IgnoreAllTransactionsInStat(ctx, bl.Id)
-	if err != nil {
-		return nil, fmt.Errorf("ignore all transactions in stat")
-	}
-
 	msg := fmt.Sprintf("set balance: %.2f", updated.Balance)
 
 	msgYin := tgbotapi.NewMessage(yin, msg)

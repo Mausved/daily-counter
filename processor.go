@@ -67,7 +67,7 @@ func (p *processor) process(ctx context.Context, update tgbotapi.Update) (messag
 			return asSlice(errMsg())
 		}
 		return messages
-	case strings.ToLower(text) == "full":
+	case strings.ToLower(text) == "f":
 		messages, err := p.handlerFullTagStats(ctx, update)
 		if err != nil {
 			log.Printf("failed handler full tag stats: %v", err)
@@ -80,7 +80,7 @@ func (p *processor) process(ctx context.Context, update tgbotapi.Update) (messag
 			"+x comment - add income\n" +
 			"-x comment - add consumption\n" +
 			"bXXX comment - set balance=XXX\n" +
-			"full - get stats spending by tags\n" +
+			"f - get stats spending by tags\n" +
 			"s - get statistics\n"
 		tgMsg := tgbotapi.NewMessage(update.Message.From.ID, msg)
 		return asSlice(tgMsg)
@@ -119,6 +119,12 @@ func countDayLimit(balance float64) float64 {
 	dailyConsumptionLimit := balance / float64(daysLeft)
 
 	return dailyConsumptionLimit
+}
+
+func daysLeft(t time.Time) int {
+	left := monthLastDay(t) - t.Day() + 1
+
+	return left
 }
 
 func monthLastDay(t time.Time) int {

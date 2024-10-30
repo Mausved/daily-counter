@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	_ "github.com/lib/pq"
@@ -12,6 +11,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 )
 
 const (
@@ -19,7 +19,7 @@ const (
 	appModeProd = "prod"
 )
 
-const appMode = appModeDev
+const appMode = appModeProd
 
 const (
 	yin  = 741126351
@@ -36,7 +36,6 @@ func main() {
 		log.Fatalf("empty telegram bot api token")
 	}
 
-	// postgres://myuser:mypassword@localhost:5432/mydatabase?sslmode=disable
 	dbConn := viper.GetString("POSTGRES_DSN")
 	if dbConn == "" {
 		log.Fatalf("empty db conn string")
@@ -114,13 +113,18 @@ func start(ctx context.Context, bot *tgbotapi.BotAPI, db *Database) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case update := <-updates:
-			messagesToSent := p.process(ctx, update)
-			for _, msg := range messagesToSent {
-				if _, err := bot.Send(msg); err != nil {
-					log.Printf("failed send msg: %v\n", err)
-					continue
+			func() {
+				ctx, cancel := context.WithTimeout(ctx, 300*time.Millisecond)
+				defer cancel()
+
+				messagesToSent := p.process(ctx, update)
+				for _, msg := range messagesToSent {
+					if _, err := bot.Send(msg); err != nil {
+						log.Printf("failed send msg: %v\n", err)
+						continue
+					}
 				}
-			}
+			}()
 		}
 	}
 }
@@ -132,15 +136,4 @@ func gracefulShutdown(cancel func(), wg *sync.WaitGroup) {
 	signal.Stop(ch)
 	cancel()
 	wg.Wait()
-}
-
-type balanceLimit struct {
-	Id         int64        `db:"id"`
-	Balance    float64      `db:"balance"`
-	Status     float64      `db:"status"`
-	DayLimit   float64      `db:"day_limit"`
-	UpdatedAt  sql.NullTime `db:"updated_at"`
-	TodaySpent float64      `db:"today_spent"`
-	TodayAdded float64      `db:"today_added"`
-	Name       string       `db:"name"`
 }

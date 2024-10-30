@@ -34,9 +34,16 @@ func (p *processor) handlerPlus(ctx context.Context, update tgbotapi.Update) ([]
 	}
 
 	parsed = math.Abs(parsed)
-	bl.Balance += parsed
+	if bl.Balance < 0 {
+		if bl.Balance+parsed > 0 {
+			moreThanZero := parsed - math.Abs(bl.Balance)
+			bl.Status = moreThanZero
+		}
+	} else {
+		bl.Status += parsed
+	}
 
-	bl.Status += parsed
+	bl.Balance += parsed
 	bl.TodayAdded += parsed
 
 	updated, err := p.db.updateBalance(ctx, bl, parsed, tag)

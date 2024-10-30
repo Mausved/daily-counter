@@ -24,20 +24,29 @@ func (p *processor) handlerStats(ctx context.Context, update tgbotapi.Update) ([
 		}
 	}
 
+	dayLimit := bl.DayLimit
+	if bl.Balance < 0 {
+		dayLimit = 0
+	}
+
 	msg := fmt.Sprintf(
 		"balance: %.2f\n"+
-			"today: %.2f\n"+
-			"day limit: %.2f",
+			"today limit: %.2f\n"+
+			"others days limit: %.2f",
 		bl.Balance,
 		bl.Status,
-		bl.DayLimit,
+		dayLimit,
 	)
 
 	daysLeft := monthLastDay(now) - now.Day() + 1
 
 	tomorrowLimit := bl.Balance
-	if daysLeft > 1 {
-		tomorrowLimit = bl.Balance / float64(daysLeft-1)
+	if tomorrowLimit < 0 {
+		tomorrowLimit = 0
+	} else {
+		if daysLeft > 1 {
+			tomorrowLimit = bl.Balance / float64(daysLeft-1)
+		}
 	}
 
 	msg = fmt.Sprintf(
