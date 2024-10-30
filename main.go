@@ -114,7 +114,7 @@ func start(ctx context.Context, bot *tgbotapi.BotAPI, db *Database) error {
 			return ctx.Err()
 		case update := <-updates:
 			func() {
-				ctx, cancel := context.WithTimeout(ctx, 300*time.Millisecond)
+				ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 				defer cancel()
 
 				messagesToSent := p.process(ctx, update)
