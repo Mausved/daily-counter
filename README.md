@@ -1,3 +1,0 @@
-# daily-counter
-
-TBD
